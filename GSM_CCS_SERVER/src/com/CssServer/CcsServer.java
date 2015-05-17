@@ -1,6 +1,7 @@
 package com.CssServer;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.logging.Level;
@@ -26,8 +27,6 @@ import org.json.simple.parser.ParseException;
 import org.xmlpull.v1.XmlPullParser;
 
 import com.CssServer.GcmPacketExtension;
-
-
 
 public class CcsServer {
 
@@ -61,12 +60,18 @@ public class CcsServer {
 	 * Returns message id to uniquely identify a message.
 	 * 
 	 * <p>
-	 * Note: Not guaranteed to be unique. There is an open bug to fix this in
-	 * the future.
+	 * Unique message ids will be produced.
 	 * 
 	 */
 	public String getRandomMessageId() {
-		return "m-" + Long.toString(random.nextLong());
+		String msg_uuid =  UUIDGenerator.generate();
+		if (msg_uuid.isEmpty())
+		{
+			// Fall back on a weak ID generator
+			logger.log(Level.SEVERE, "UUIDGenerator failed to produce UUID");
+			return "m-" + Long.toString(random.nextLong());
+		}
+		return msg_uuid;
 	}
 
 	/**
@@ -81,7 +86,6 @@ public class CcsServer {
 	 * Handles an upstream data message from a device application.
 	 * 
 	 * <p>
-	 * This sample echo server sends an echo message back to the device.
 	 * Subclasses should override this method to process an upstream message.
 	 */
 	public void handleIncomingDataMessage(Map<String, Object> jsonObject) {
@@ -92,9 +96,18 @@ public class CcsServer {
 		String from = jsonObject.get("from").toString();
 		// PackageName of the application that sent this message.
 		String category = jsonObject.get("category").toString();
+	
 		logger.log(Level.INFO, "Application: " + category);
-
+		logger.log(Level.INFO, "From: " + from);
+		
 		// Handle what happens with upstream messages
+		Iterator<String> iterator = payload.keySet().iterator();
+		while(iterator.hasNext())
+		{
+			String key = iterator.next();
+			String value = payload.get(key);
+			logger.log(Level.INFO, "Data.key: " + key + " Data.value: " + value);
+		}
 	}
 
 	/**
@@ -296,7 +309,7 @@ public class CcsServer {
 		// TODO Auto-generated method stub
 		final String userName = GCM_SENDER_ID + "@gcm.googleapis.com";
 		final String password = GCM_SERVER_KEY;
-
+		
 		CcsServer ccsClient = new CcsServer();
 		try {
 			// Setup CCS client 

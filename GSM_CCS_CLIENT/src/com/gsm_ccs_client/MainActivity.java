@@ -1,7 +1,7 @@
 package com.gsm_ccs_client;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Random;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -23,10 +23,10 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
-	AtomicInteger m_msgId = new AtomicInteger();
 	GoogleCloudMessaging m_gcm;
 	Context m_context;
 	String m_regid;
+	static Random random = new Random();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +36,34 @@ public class MainActivity extends Activity {
 		if(!initialize()) {
 			Log.e(Globals.TAG, "Failed to initalize GCM. Fatal! Please inspect the messages above.");
 		}
+		
+		String temp = createUniqueID();
+		/***< Testing only >**/
+		new AsyncTask<String, Void, String>() {
+			@Override
+			protected String doInBackground(String... params) {
+				String msg = "";
+				try {
+					Bundle data = new Bundle();
+					data.putString("action",
+							"com.gsm_ccs_client.REGISTER");
+					String id = createUniqueID();
+					m_gcm.send(Globals.GCM_SENDER_ID + "@gcm.googleapis.com", id,
+							Globals.GCM_TIME_TO_LIVE, data);
+					msg = "Sent registration";
+				} catch (IOException ex) {
+					msg = "Error :" + ex.getMessage();
+				}
+				return msg;
+			}
+
+			@Override
+			protected void onPostExecute(String msg) {
+				Toast.makeText(m_context, msg, Toast.LENGTH_SHORT).show();
+				Log.i(Globals.TAG, msg);
+			}
+		}.execute(null,null,null);
+		/***< Testing only />**/
 	}
 
 	@Override
@@ -200,7 +228,7 @@ public class MainActivity extends Activity {
 					Bundle data = new Bundle();
 					data.putString("action",
 							"com.gsm_ccs_client.REGISTER");
-					String id = Integer.toString(m_msgId.incrementAndGet());
+					String id = createUniqueID();
 					m_gcm.send(Globals.GCM_SENDER_ID + "@gcm.googleapis.com", id,
 							Globals.GCM_TIME_TO_LIVE, data);
 					msg = "Sent registration";
@@ -235,5 +263,16 @@ public class MainActivity extends Activity {
 		editor.putString(Globals.PREFS_PROPERTY_REG_ID, regId);
 		editor.putInt(Globals.PROPERTY_APP_VERSION, appVersion);
 		editor.commit();
+	}
+	
+	private static String createUniqueID()
+	{
+		String msgId= UUIDGenerator.generate();
+		if (msgId.isEmpty())
+		{
+			Log.e(Globals.TAG, "ID generator is failing!");
+			msgId = "m-" + Long.toString(random.nextLong());
+		}
+		return msgId;
 	}
 }
