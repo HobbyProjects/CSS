@@ -1,11 +1,16 @@
 package com.CssServer;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.FileHandler;
+import java.util.logging.Formatter;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -27,23 +32,32 @@ import org.json.simple.parser.ParseException;
 import org.xmlpull.v1.XmlPullParser;
 
 import com.CssServer.GcmPacketExtension;
+import com.CssServer.Database;
 
 public class CcsServer {
-
-	Logger logger = Logger.getLogger("CcsServer");
-
+	public static final Logger logger = Logger.getLogger(CcsServer.class.getName());
 	public static final String GCM_SERVER = "gcm.googleapis.com";
 	public static final int GCM_PORT = 5235;
 	public static final String GCM_SENDER_ID = "908527372899";
 	public static final String GCM_SERVER_KEY = "AIzaSyAGlPY70VXA4wJAOlAnxqmESnvIzMfbsrU";
 	public static final String GCM_ELEMENT_NAME = "gcm";
 	public static final String GCM_NAMESPACE = "google:mobile:data";
+	public static final String DATABASE_FILE = "C:/Users/Hi/Documents/GitHub/CSS/GSM_CCS_SERVER/databases/test.db";
+	public static final String LOG_FILENAME = "./CcsServer.log";
 
 	static Random random = new Random();
 	XMPPConnection connection;
 	ConnectionConfiguration config;
+	Database database;
 
 	public CcsServer() {
+		/*try {
+			database = new Database(DATABASE_FILE);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		initializeLogging(LOG_FILENAME);
 		ProviderManager.getInstance().addExtensionProvider(GCM_ELEMENT_NAME,
 				GCM_NAMESPACE, new PacketExtensionProvider() {
 					@Override
@@ -56,6 +70,35 @@ public class CcsServer {
 				});
 	}
 
+	/**
+	 * Initializes the logger.
+	 * 
+	 * <p>
+	 * The logs are directed to a file specified by logFilename.
+	 * 
+	 * @param logFilename
+	 *        The name of the log file.
+	 */
+	private void initializeLogging(String logFilename) {
+		Handler fileHandler = null;
+		Formatter simpleFormatter = null;
+		try {
+			fileHandler = new FileHandler(logFilename);
+			simpleFormatter = new SimpleFormatter();
+			logger.addHandler(fileHandler);
+			fileHandler.setFormatter(simpleFormatter);
+			fileHandler.setLevel(Level.ALL);
+			logger.setLevel(Level.ALL);
+			logger.info("Logging started...");
+			
+			if(database != null) {
+				database.initializeLogging(fileHandler, simpleFormatter);
+			}
+
+		} catch (IOException exception) {
+			logger.log(Level.SEVERE, "Unable to redirect the log to a file: ", exception);
+		}
+	}
 	/**
 	 * Returns message id to uniquely identify a message.
 	 * 

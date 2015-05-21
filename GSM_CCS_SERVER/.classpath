@@ -11,5 +11,6 @@
 	<classpathentry kind="lib" path="C:/Users/Hi/Documents/GitHub/CSS/GSM_CCS_SERVER/lib/ormlite-jdbc-4.46.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Hi/Documents/GitHub/CSS/GSM_CCS_SERVER/lib/smack.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Hi/Documents/GitHub/CSS/GSM_CCS_SERVER/lib/smackx.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Hi/Documents/GitHub/CSS/GSM_CCS_SERVER/lib/sqlite-jdbc-3.7.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
