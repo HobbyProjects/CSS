@@ -51,13 +51,27 @@ public class CcsServer {
 	Database database;
 
 	public CcsServer() {
-		/*try {
+		// start the database
+		try {
 			database = new Database(DATABASE_FILE);
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}*/
+		}
+		
+		// start the logging to file
 		initializeLogging(LOG_FILENAME);
+		
+		//Unit tests for database
+		database.createGroupNameTable();
+		database.createMembershipTable();
+		
+		database.addEntryToGroupNameTable("test", 1.1, 2.2);
+		database.addEntryToGroupNameTable("test2", 3.3, 4.4);
+		
+		database.addEntryToMembershipTable("userID1", "testGroup1", 5.5, 6.6);
+		//End of unit tests for database"
+		
 		ProviderManager.getInstance().addExtensionProvider(GCM_ELEMENT_NAME,
 				GCM_NAMESPACE, new PacketExtensionProvider() {
 					@Override
@@ -354,6 +368,7 @@ public class CcsServer {
 		final String password = GCM_SERVER_KEY;
 		
 		CcsServer ccsClient = new CcsServer();
+
 		try {
 			// Setup CCS client 
 			ccsClient.connect(userName, password);
