@@ -1,10 +1,12 @@
 package com.CssServer;
 
 import java.io.IOException;
+import java.security.spec.MGF1ParameterSpec;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
@@ -51,26 +53,11 @@ public class CcsServer {
 	Database database;
 
 	public CcsServer() {
-		// start the database
-		try {
-			database = new Database(DATABASE_FILE);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		// start the logging to file
 		initializeLogging(LOG_FILENAME);
 		
-		//Unit tests for database
-		database.createGroupNameTable();
-		database.createMembershipTable();
-		
-		database.addEntryToGroupNameTable("test", 1.1, 2.2);
-		database.addEntryToGroupNameTable("test2", 3.3, 4.4);
-		
-		database.addEntryToMembershipTable("userID1", "testGroup1", 5.5, 6.6);
-		//End of unit tests for database"
+		// start the database and create groups
+		initializeDatabase();
 		
 		ProviderManager.getInstance().addExtensionProvider(GCM_ELEMENT_NAME,
 				GCM_NAMESPACE, new PacketExtensionProvider() {
@@ -82,6 +69,99 @@ public class CcsServer {
 						return packet;
 					}
 				});
+	}
+	
+	/**
+	 * Initializes the database.
+	 * 
+	 * <p>
+	 * Creates the database and create the two groups;
+	 * GroupName and Membership table.
+	 * 
+	 */
+	private void initializeDatabase() {
+		// start the database
+		try {
+			database = new Database(DATABASE_FILE);
+		} catch (ClassNotFoundException e) {
+			logger.severe("Failed to create the database.");
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		//Unit tests for database
+		database.createGroupNameTable();
+		database.createMembershipTable();
+		
+		GroupNameEntry group1 = new GroupNameEntry("testGroup1", -5.5, 6.6);
+		GroupNameEntry group2 = new GroupNameEntry("testGroup2", -7.4, 8.6);
+		MembershipEntry member1 = new MembershipEntry("userID1", group1);
+		MembershipEntry member2 = new MembershipEntry("userID2", group2);
+		MembershipEntry member3 = new MembershipEntry("userID3", group2);
+		MembershipEntry member4 = new MembershipEntry("userID4", group1);
+		
+		database.addEntryToGroupNameTable(group1);
+		database.addEntryToGroupNameTable(group2);
+		
+		database.addEntryToMembershipTable(member1);
+		database.addEntryToMembershipTable(member2);
+		database.addEntryToMembershipTable(member3);
+		database.addEntryToMembershipTable(member4);
+		
+		Vector<GroupNameEntry> gEntries = new Vector<GroupNameEntry>();
+		gEntries = database.getGroupNameTableEntries();
+		for (int i = 0; i < gEntries.size(); i++) {
+			logger.info("GroupName N LA LO:" + gEntries.get(i).name + " " +
+					                           gEntries.get(i).latitude + " " +
+					                           gEntries.get(i).longitude);
+		}
+		Vector<MembershipEntry> mEntries = new Vector<MembershipEntry>();
+		mEntries = database.getMembershipTableEntries();
+		for (int i = 0; i < mEntries.size(); i++) {
+			logger.info("Membership I N LA LO:" + mEntries.get(i).userid     + " " +
+					                              mEntries.get(i).membership.name + " " +
+					                              mEntries.get(i).membership.latitude   + " " +
+					                              mEntries.get(i).membership.longitude);
+		}
+		
+		mEntries.clear();
+		database.updateEntryOfMembershipTable("userID1", "testGroup2", -7.5, 8.6);
+		database.updateEntryOfMembershipTable("userID4", "testGroup2", -7.5, 8.6);
+		logger.info("Updating user ID1 and ID4...");
+		mEntries = database.getMembershipTableEntries();
+		for (int i = 0; i < mEntries.size(); i++) {
+			logger.info("Membership I N LA LO:" + mEntries.get(i).userid     + " " +
+					                              mEntries.get(i).membership.name + " " +
+					                              mEntries.get(i).membership.latitude   + " " +
+					                              mEntries.get(i).membership.longitude);
+		}
+		mEntries.clear();
+		logger.info("Removing user ID1 and ID4");
+		database.removeEntryFromMembershipTable("userID1");
+		database.removeEntryFromMembershipTable("userID4");
+		mEntries = database.getMembershipTableEntries();
+		for (int i = 0; i < mEntries.size(); i++) {
+			logger.info("Membership I N LA LO:" + mEntries.get(i).userid     + " " +
+					                              mEntries.get(i).membership.name + " " +
+					                              mEntries.get(i).membership.latitude   + " " +
+					                              mEntries.get(i).membership.longitude);
+		}
+		logger.info("Removing testgroup1");
+		database.removeEntryFromGroupNameTable(group1);
+		gEntries.clear();
+		gEntries = database.getGroupNameTableEntries();
+		for (int i = 0; i < gEntries.size(); i++) {
+			logger.info("GroupName N LA LO:" + gEntries.get(i).name + " " +
+					                           gEntries.get(i).latitude + " " +
+					                           gEntries.get(i).longitude);
+		}
+		
+		logger.info("Removing membership and groupname tables");
+		database.removeMembershipTable();
+		database.removeGroupNameTable();
+		
+		database.close();
+		return;
 	}
 
 	/**

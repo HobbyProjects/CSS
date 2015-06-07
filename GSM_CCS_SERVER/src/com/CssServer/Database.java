@@ -44,15 +44,7 @@ public class Database {
 			statement.setQueryTimeout(30);
 		} catch (SQLException e) {
 			e.printStackTrace();
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		} 
 	}
 
 	/**
@@ -127,11 +119,9 @@ public class Database {
 			ResultSet rs = statement.executeQuery(query);
 			while(rs.next())
 			{
-				MembershipEntry entry = new MembershipEntry();
-				entry.userid = rs.getString("userid");
-				entry.membership = rs.getString("membership");
-				entry.latitude = rs.getDouble("latitude");
-				entry.longitude = rs.getDouble("longitude");
+				GroupNameEntry gEntry = new GroupNameEntry(rs.getString("membership"), rs.getDouble("latitude"), rs.getDouble("longitude"));
+				MembershipEntry entry = new MembershipEntry(rs.getString("userid"), gEntry);
+
 				tableEntries.addElement(entry);
 			}
 
@@ -140,15 +130,7 @@ public class Database {
 			logger.severe("Database problems while executing query in executeQuery. Query: "
 					+ query);
 			e.printStackTrace();
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		} 
 		
 		return tableEntries;
 	}
@@ -170,10 +152,7 @@ public class Database {
 			ResultSet rs = statement.executeQuery(query);
 			while(rs.next())
 			{
-				GroupNameEntry entry = new GroupNameEntry();
-				entry.name = rs.getString("name");
-				entry.latitude = rs.getDouble("latitude");
-				entry.longitude = rs.getDouble("longitude");
+				GroupNameEntry entry = new GroupNameEntry(rs.getString("name"), rs.getDouble("latitude"), rs.getDouble("longitude") );
 				tableEntries.addElement(entry);
 			}
 
@@ -182,15 +161,7 @@ public class Database {
 			logger.severe("Database problems while executing query in executeQuery. Query: "
 					+ query);
 			e.printStackTrace();
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
+		} 
 		
 		return tableEntries;
 	}
@@ -201,19 +172,14 @@ public class Database {
 	 * <p>
 	 * Returns false if table doesn't exist or unsuccessful. True otherwise.
 	 * 
-	 * @param _groupName
-	 *            The name of the group
-	 * @param _latitude
-	 *            The latitude of the group location
-	 * @param _longitude
-	 * 			  The longitude of the group location
+	 * @param gEntry
+	 *            GroupNameEntry containing the information of the group to be added.
 	 * @return
 	 *        True is succeeds. False otherwise.
 	 */
-	public boolean addEntryToGroupNameTable(String _groupName,
-			double _latitude, double _longitude) {
-		String entry = "('" + _groupName + "', " + Double.toString(_latitude)
-				+ ", " + Double.toString(_longitude) + ")";
+	public boolean addEntryToGroupNameTable(GroupNameEntry gEntry) {
+		String entry = "('" + gEntry.name + "', " + Double.toString(gEntry.latitude)
+				+ ", " + Double.toString(gEntry.longitude) + ")";
 		
 		return addEntryToTable(entry, GROUP_NAME_TABLE);
 	}
@@ -224,23 +190,16 @@ public class Database {
 	 * <p>
 	 * Returns false if table doesn't exist or unsuccessful. True otherwise.
 	 * 
-	 * @param _userid
-	 *            The id of the user
-	 * @param _groupMembership
-	 *            The group that the user belongs to
-	 * @param _latitude
-	 *            The latitude of the group location
-	 * @param _longitude
-	 * 			  The longitude of the group location
+	 * @param mEntry
+	 *        The MemeberShipEntry containing the userid, and the group it belongs to.
 	 * @return
 	 *        True if succeeds. False otherwise.
 	 */
-	public boolean addEntryToMembershipTable(String _userid, String _groupMembership,
-			double _latitude, double _longitude) {
-		String entry = "('" + _userid + "', " +
-			           "'"+ _groupMembership + "', " + 
-				       Double.toString(_latitude) + ", " + 
-			           Double.toString(_longitude) + ")";
+	public boolean addEntryToMembershipTable(MembershipEntry mEntry) {
+		String entry = "('" + mEntry.userid + "', " +
+			           "'"+ mEntry.membership.name + "', " + 
+				       Double.toString(mEntry.membership.latitude) + ", " + 
+			           Double.toString(mEntry.membership.longitude) + ")";
 		
 		return addEntryToTable(entry, MEMBERSHIP_TABLE);
 	}
@@ -251,20 +210,16 @@ public class Database {
 	 * <p>
 	 * Returns false if table doesn't exist or unsuccessful. True otherwise.
 	 * 
-	 * @param _groupName
-	 *            The group name to remove.
-	 * @param _latitude 
-	 *            The latitude of the group location.
-	 * @param _longitude
-	 *            The longitude of the group location.
+	 * @param gEntry
+	 *            The GroupNameEntry class describing the group to be removed.
 	 * 
 	 * @return
 	 *        True if succeeds. False otherwise.
 	 */
-	public boolean removeEntryFromGroupNameTable(String _groupName,
-			double _latitude, double _longitude) {
-		String entry = "name = " + _groupName + " AND latitude = " + _latitude + " AND longitude = " + _longitude;	
-		
+	public boolean removeEntryFromGroupNameTable(GroupNameEntry gEntry) {
+		String entry = "name = '" + gEntry.name + "'" + " AND latitude = "
+				+ gEntry.latitude + " AND longitude = " + gEntry.longitude;
+	
 		return removeEntryFromTable(entry, GROUP_NAME_TABLE);
 	}
 	
@@ -280,7 +235,7 @@ public class Database {
 	 *        True if succeeds. False otherwise.
 	 */
 	public boolean removeEntryFromMembershipTable(String _userid) {
-		String entry = "userid = " + _userid;
+		String entry = "userid = '" + _userid + "'";
 		
 		return removeEntryFromTable(entry, MEMBERSHIP_TABLE);
 	}
@@ -347,6 +302,25 @@ public class Database {
 	}
 	
 	/**
+	 * Database closure.
+	 * 
+	 * <p>
+	 * Properly closes the database connection.
+	 */
+	public void close() {
+		try {
+			if (connection != null) {
+				logger.info("Closing the database");
+				connection.close();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return;
+	}
+	
+	/**
 	 * Adds the specified entry to the table.
 	 * 
 	 * <p>
@@ -385,7 +359,7 @@ public class Database {
 	 *            Table to remove the entry from.
 	 */	
 	private boolean removeEntryFromTable(String entry, String tableName) {
-		String query = "delete from " + tableName+ " where " + entry;
+		String query = "delete from " + tableName + " where " + entry;
 		try {
 			statement.executeUpdate(query);
 		} catch (SQLException e) {
@@ -423,16 +397,7 @@ public class Database {
 			// TODO Auto-generated catch block
 			logger.severe("Error when creating the table " + tableName + " Params: " + parameters);
 			e.printStackTrace();
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
+		} 
 		return;
 	}
 	
@@ -453,16 +418,7 @@ public class Database {
 			// TODO Auto-generated catch block
 			logger.severe("Error when removing the table " + tableName );
 			e.printStackTrace();
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		
+		} 
 		return;
 	}
 
